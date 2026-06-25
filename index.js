@@ -23,19 +23,21 @@ export const MODELS = [
   { id: 'iaedu/default', name: 'IAEDU Default', description: 'Default IAEDU language model' },
 ];
 
-function normalizeEndpoint(endpoint) {
-  if (!endpoint) return '';
-  let url = endpoint.trim();
-  while (url.endsWith('/')) url = url.slice(0, -1);
-  return url;
-}
-
 function getEndpoint() {
-  if (IAEDU_ENDPOINT) return normalizeEndpoint(IAEDU_ENDPOINT);
+  if (IAEDU_ENDPOINT) {
+    let url = IAEDU_ENDPOINT.trim();
+    while (url.endsWith('/')) url = url.slice(0, -1);
+    return url;
+  }
   if (IAEDU_AGENT_ID) return `https://api.iaedu.pt/agent-chat/api/v1/agent/${IAEDU_AGENT_ID}/stream`;
   throw new Error('IAEDU endpoint not configured. Set IAEDU_ENDPOINT or IAEDU_AGENT_ID.');
 }
 
+/**
+ * Envia um prompt para a API do IAEDU e retorna o texto completo da resposta.
+ * A API usa form-data POST com SSE (Server-Sent Events) para streaming.
+ * Esta função consome o stream e devolve o texto concatenado.
+ */
 export async function callIAEDU(prompt, system) {
   const endpoint = getEndpoint();
   const formData = new FormData();
@@ -44,11 +46,17 @@ export async function callIAEDU(prompt, system) {
   formData.append('channel_id', IAEDU_CHANNEL_ID);
   formData.append('message', system ? `${system}\n\n${prompt}` : prompt);
 
-  const response = await axios.post(endpoint, formData, {
-    headers: { 'x-api-key': IAEDU_API_KEY },
-    timeout: 120000,
-    responseType: 'stream',
-  });
+  let response;
+  try {
+    response = await axios.post(endpoint, formData, {
+      headers: { 'x-api-key': IAEDU_API_KEY },
+      timeout: 120000,
+      responseType: 'stream',
+    });
+  } catch (err) {
+    const detail = err.response?.status ? `HTTP ${err.response.status}` : err.message;
+    throw new Error(`IAEDU API request failed: ${detail}`);
+  }
 
   let fullText = '';
   const reader = response.data.getReader();
@@ -70,7 +78,9 @@ export async function callIAEDU(prompt, system) {
         try {
           const data = JSON.parse(dataStr);
           if (data.type === 'token' && data.content) fullText += data.content;
-        } catch {}
+        } catch {
+          // Linha SSE com formato inesperado — ignora silenciosamente
+        }
       }
     }
   } finally {
@@ -80,6 +90,10 @@ export async function callIAEDU(prompt, system) {
   return fullText;
 }
 
+/**
+ * Cria e configura o servidor MCP com as ferramentas `complete` e `list_models`.
+ * Exportada para ser usada tanto pelo entry point CLI como pelos testes (via InMemoryTransport).
+ */
 export function createServer() {
   const server = new McpServer(
     { name: 'opencode-iaedu', version: '1.0.0' },
@@ -92,9 +106,15 @@ export function createServer() {
     {
       prompt: z.string().describe('The user prompt to send'),
       system: z.string().optional().describe('Optional system message'),
-      model: z.string().optional().describe('Model identifier (defaults to iaedu/default)'),
+      model: z.string().optional().describe('Model identifier (only iaedu/default is available)'),
     },
     async ({ prompt, system, model }) => {
+      if (model && model !== 'iaedu/default') {
+        return {
+          content: [{ type: 'text', text: `Model "${model}" not found. Available: iaedu/default` }],
+          isError: true,
+        };
+      }
       const text = await callIAEDU(prompt, system);
       return { content: [{ type: 'text', text }] };
     }
@@ -137,6 +157,7 @@ if (process.argv[1]) {
         process.exit(1);
       });
     }
-  } catch {}
+  } catch {
+    // process.argv[1] pode não ser um caminho válido (ex: node -e)
+  }
 }
-

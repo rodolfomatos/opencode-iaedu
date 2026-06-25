@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { fileURLToPath } from 'url';
 
 describe('opencode-iaedu MCP server', () => {
   let client;
-  let session;
 
   beforeAll(async () => {
     process.env.IAEDU_API_KEY = 'test-key';

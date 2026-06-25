@@ -85,15 +85,8 @@ mcp-add:
 		echo "[OK] iaedu MCP server already registered with opencode"; \
 	fi
 
-install: setup configure install-deps mcp-add
-	@echo ""
-	@echo "============================================"
-	@echo "  opencode-iaedu instalado com sucesso!"
-	@echo "============================================"
-	@echo ""
-	@echo "  Numa sessao opencode, pede ao agente para"
-	@echo "  usar a ferramenta IAEDU complete tool."
-	@echo ""
+install:
+	./install.sh
 
 clean:
 	rm -rf node_modules package-lock.json
@@ -108,5 +101,5 @@ help:
 	@echo "  test         run test suite"
 	@echo "  install-deps install opencode-iaedu globally"
 	@echo "  mcp-add      register with opencode as MCP server"
-	@echo "  install      run full install (setup + configure + install-deps + mcp-add)"
+	@echo "  install      run install.sh (interactive full install)"
 	@echo "  clean        remove node_modules"

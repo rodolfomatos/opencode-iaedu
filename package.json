@@ -1,0 +1,33 @@
+{
+  "name": "opencode-iaedu",
+  "version": "1.0.0",
+  "description": "MCP server for IAEDU models — use IAEDU models as tools inside opencode",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "opencode-iaedu": "./index.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "opencode",
+    "mcp",
+    "iaedu",
+    "mcpserver",
+    "ai"
+  ],
+  "author": "Rodolfo Matos",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}
